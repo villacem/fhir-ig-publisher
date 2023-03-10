@@ -638,7 +638,7 @@ public class HTMLInspector {
     }
     
     if (!resolved) {
-      String fref = Utilities.path(Utilities.getDirectoryForFile(filename), ref);
+      String fref = Utilities.readPath(Utilities.getDirectoryForFile(filename), ref);
       if (fref.equals(Utilities.path(rootFolder, "qa.html"))) {
         resolved = true;
       }
@@ -656,7 +656,7 @@ public class HTMLInspector {
      }
      // a local file may have been created by some poorly tracked process, so we'll consider that as a possible
      if (!resolved && !Utilities.isAbsoluteUrl(rref) && !rref.contains("..")) { // .. is security check. Maybe there's some ways it could be valid, but we're not interested for now
-       String fname = Utilities.path(new File(filename).getParent(), rref);
+       String fname = Utilities.readPath(new File(filename).getParent(), rref);
        if (new File(fname).exists()) {
          resolved = true;
        }
