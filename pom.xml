@@ -207,13 +207,11 @@
             <groupId>org.apache.poi</groupId>
             <artifactId>poi</artifactId>
             <version>${apache_poi_version}</version>
-            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>org.apache.poi</groupId>
             <artifactId>poi-ooxml</artifactId>
             <version>${apache_poi_version}</version>
-            <optional>true</optional>
             <exclusions>
                 <exclusion>  <!-- declare the exclusion here -->
                     <groupId>org.apache.poi</groupId>
@@ -225,7 +223,6 @@
             <groupId>org.apache.poi</groupId>
             <artifactId>poi-ooxml-full</artifactId>
             <version>${apache_poi_version}</version>
-            <optional>true</optional>
         </dependency>
 
         <dependency>

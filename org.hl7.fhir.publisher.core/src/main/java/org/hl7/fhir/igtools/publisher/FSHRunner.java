@@ -65,18 +65,17 @@ public class FSHRunner {
         exec.setWorkingDirectory(file);
         ExecuteWatchdog watchdog = new ExecuteWatchdog(fshTimeout);
         exec.setWatchdog(watchdog);
-        String cmd = fshVersion == null ? "sushi" : "npx fsh-sushi@"+fshVersion;
-        if (mode == Publisher.IGBuildMode.PUBLICATION || mode == Publisher.IGBuildMode.AUTOBUILD) {
-            cmd += " --require-latest";
-        }
+        String cmd = fshVersion == null ? "sushi" : "npx";
+
         try {
             if (SystemUtils.IS_OS_WINDOWS) {
-                final CommandLine commandLine = new CommandLine("cmd")
-                        .addArgument("/C")
-                        .addArgument(cmd)
-                        .addArgument(".")
-                        .addArgument("-o")
-                        .addArgument(".");
+                final CommandLine commandLine = addModeArguments(
+                        addFshVersionArguments(
+                                new CommandLine("cmd")
+                                    .addArgument("/C")
+                                    .addArgument(cmd),
+                                fshVersion),
+                mode);
 
                 exec.execute(commandLine);
             } else if (FhirSettings.hasNpmPath()) {
@@ -86,18 +85,22 @@ public class FSHRunner {
                 vars.putAll(env);
                 String path = FhirSettings.getNpmPath()+":"+env.get("PATH");
                 vars.put("PATH", path);
-                final CommandLine commandLine = new CommandLine("bash")
-                        .addArgument("-c")
-                        .addArgument(cmd)
-                        .addArgument(".")
-                        .addArgument("-o")
-                        .addArgument(".");
+                final CommandLine commandLine = addModeArguments(
+                        addFshVersionArguments(
+                            new CommandLine("bash")
+                                    .addArgument("-c")
+                                    .addArgument(cmd),
+                                fshVersion),
+                        mode);
+
                 exec.execute(commandLine, vars);
             } else {
-                final CommandLine commandLine = new CommandLine(cmd)
-                        .addArgument(".")
-                        .addArgument("-o")
-                        .addArgument(".");
+                final CommandLine commandLine = addModeArguments(
+                        addFshVersionArguments(
+                            new CommandLine(cmd),
+                                fshVersion),
+                        mode);
+
                 exec.execute(commandLine);
             }
         } catch (IOException ioex) {
@@ -113,6 +116,23 @@ public class FSHRunner {
         if (pumpHandler.errorCount > 0) {
             throw new IOException("Sushi failed with errors. Complete output from running Sushi : " + pumpHandler.getBufferString());
         }
+    }
+
+    private CommandLine addFshVersionArguments(CommandLine commandLine, String fshVersion) {
+        if (fshVersion == null)
+        {
+            return commandLine;
+        }
+        return commandLine.addArgument("fsh-sushi@"+fshVersion);
+    }
+
+    private CommandLine addModeArguments(CommandLine commandLine, Publisher.IGBuildMode mode) {
+        CommandLine commandLineWithModeArguments =  (mode == Publisher.IGBuildMode.PUBLICATION || mode == Publisher.IGBuildMode.AUTOBUILD) ?
+            commandLine.addArguments(" --require-latest") : commandLine;
+
+        return commandLineWithModeArguments.addArgument(".")
+                .addArgument("-o")
+                .addArgument(".");
     }
 
     public class MySushiHandler extends OutputStream {
