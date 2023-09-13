@@ -48,6 +48,25 @@ import org.hl7.fhir.utilities.npm.PackageGenerator.PackageType;
 
 public class TemplateManager {
 
+  public static final String[] KNOWN_SCRIPT_EXTENSIONS = {".html", ".css", ".png", ".gif", ".oet", ".json", ".xml", ".ico", ".jpg", ".md", ".ini", ".eot", ".otf", ".svg", ".ttf", ".woff", ".txt", ".yml", ".yaml", ".liquid", ".gitignore"};
+
+  /** A whitelist of template IDs that are permitted to run scripts in auto-build mode. If you are proposing to change this list, discuss with FHIR Product Director first
+  */
+  public static final String[] TEMPLATE_ID_WHITELIST = {
+          "fhir.test.template",
+          "fhir.base.template",
+          "hl7.base.template",
+          "hl7.fhir.template",
+          "hl7.au.base.template",
+          "hl7.au.fhir.template",
+          "hl7.utg.template",
+          "hl7.be.fhir.template",
+          "hl7.cda.template",
+          "hl7.davinci.template",
+          "openhie.fhir.template",
+          "who.fhir.template",
+          "ihe.fhir.template"
+  };
   private FilesystemPackageCacheManager pcm;
   private ILoggingService logger;
   private List<JsonObject> configs = new ArrayList<JsonObject>();
@@ -61,7 +80,7 @@ public class TemplateManager {
     this.logger = logger;
   }
 
-  public Template loadTemplate(String template, String rootFolder, String packageId, boolean autoMode) throws FHIRException, IOException {
+  public Template loadTemplate(String template, String rootFolder, String packageId, boolean autoBuildMode) throws FHIRException, IOException {
     String templateDir = Utilities.path(rootFolder, "template");
     boolean inPlace = template.equals("#template");
     if (!inPlace) {
@@ -71,12 +90,11 @@ public class TemplateManager {
     List<String> scriptTemplates = new ArrayList<String>();
     
     canExecute = true;
-    NpmPackage npm;
     if (!inPlace) {
       installTemplate(template, rootFolder, templateDir, scriptTemplates, new ArrayList<String>(), 0);
     }
     
-    if (!autoMode) {
+    if (!autoBuildMode) {
       canExecute = true; // nah, we don't care. locally, we'll build whatever people give us
     }
     if (!canExecute) {
@@ -108,7 +126,7 @@ public class TemplateManager {
     
     npm.unPackWithAppend(templateDir);
     Set<String> ext = new HashSet<>();
-    boolean noScripts = true;
+    boolean noScriptsInTemplate = true;
     JsonObject config = null;
     if (npm.hasFile(Utilities.path("package", "$root"), "config.json")) {
       try {
@@ -118,15 +136,15 @@ public class TemplateManager {
         throw new FHIRException("Error parsing "+npm.name()+"#"+npm.version()+"#"+Utilities.path("package", "$root", "config.json")+": "+e.getMessage(), e);
       }
       configs.add(config);
-      noScripts = !config.has("script") && !config.has("targets");
+      noScriptsInTemplate = !config.has("script") && !config.has("targets");
     }  
-    if (noScripts) {
+    if (noScriptsInTemplate) {
       for (NpmPackageFolder f : npm.getFolders().values()) {
         for (String n : f.listFiles()) {
           if (!Utilities.existsInList(n.toLowerCase(), "license", "readme")) {
             String s = extension(n);
-            if (!Utilities.existsInList(s, ".html", ".css", ".png", ".gif", ".oet", ".json", ".xml", ".ico", ".jpg", ".md", ".ini", ".eot", ".otf", ".svg", ".ttf", ".woff", ".txt", ".yml", ".yaml", ".liquid", ".gitignore")) {
-              noScripts = false;
+            if (!Utilities.existsInList(s, KNOWN_SCRIPT_EXTENSIONS)) {
+              noScriptsInTemplate = false;
               ext.add(s);
               break;
             }
@@ -134,7 +152,7 @@ public class TemplateManager {
         }
       }
     }
-    if (!noScripts) {
+    if (!noScriptsInTemplate) {
       checkTemplateId(template, npm.name(), config == null ? "has file extensions: "+ ext : config.has("script") ? "template nominates a script" : 
         config.has("targets") ? "template nominates ant targets" : "has file extensions: "+ ext);
     }
@@ -201,21 +219,8 @@ public class TemplateManager {
       canExecute = false;
       templateThatCantExecute = template;
       templateReason = reason;
-    } else if (!Utilities.existsInList(packageId, 
-        // if you are proposing to change this list, discuss with FHIR Product Director first
-        "fhir.test.template", 
-        "fhir.base.template",
-        "hl7.base.template",
-        "hl7.fhir.template",
-        "hl7.au.base.template",
-        "hl7.au.fhir.template",
-        "hl7.utg.template",
-        "hl7.be.fhir.template",
-        "hl7.cda.template",
-        "hl7.davinci.template",
-        "openhie.fhir.template",
-        "who.fhir.template",
-        "ihe.fhir.template")) {
+    } else if (!Utilities.existsInList(packageId,
+            TEMPLATE_ID_WHITELIST)) {
       canExecute = false;
       templateThatCantExecute = template;
       templateReason = reason;
