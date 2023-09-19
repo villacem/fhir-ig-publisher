@@ -262,12 +262,11 @@ public class ValidationPresenter extends TranslatingUtilities implements Compara
   private IpaComparator ipaComparator;
   private List<StructureDefinition> modifierExtensions;
   private String globalCheck;
-  private String draftDependencies;
   
   public ValidationPresenter(String statedVersion, String igVersion, IGKnowledgeProvider provider, IGKnowledgeProvider altProvider, String root, String packageId, String altPackageId, 
       String toolsVersion, String currentToolsVersion, RealmBusinessRules realm, PreviousVersionComparator previousVersionComparator, IpaComparator ipaComparator,
       String dependencies, String csAnalysis, String pubReqCheck, String globalCheck, String copyrightYear, IWorkerContext context,
-      Set<String> r5Extensions, List<StructureDefinition> modifierExtensions, String draftDependencies,
+      Set<String> r5Extensions, List<StructureDefinition> modifierExtensions,
       List<FetchedResource> noNarratives, List<FetchedResource> noValidation, boolean noValidate, boolean noGenerate, DependentIGFinder dependentIgs) {
     super();
     this.statedVersion = statedVersion;
@@ -294,7 +293,6 @@ public class ValidationPresenter extends TranslatingUtilities implements Compara
     this.noGenerate = noGenerate;
     this.r5Extensions = r5Extensions;
     this.modifierExtensions = modifierExtensions;
-    this.draftDependencies = draftDependencies;
     this.globalCheck = globalCheck;
     ruleDateCutoff = Date.from(LocalDate.now().minusMonths(1).atStartOfDay(ZoneId.systemDefault()).toInstant());
     determineCode();
@@ -600,10 +598,8 @@ public class ValidationPresenter extends TranslatingUtilities implements Compara
     Set<String> msgs = new HashSet<>();
     for (ValidationMessage message : messages) {
       boolean passesFilter = true;
-      if (canSuppressErrors || !message.getLevel().isError()) {
-        if (suppressedMessages.contains(message.getDisplay(), message) || suppressedMessages.contains(message.getMessage(), message) ||
-              suppressedMessages.contains(message.getHtml(), message) || suppressedMessages.contains(message.getMessageId(), message) || 
-              suppressedMessages.contains(message.getInvId(), message)) {
+      if (canSuppressErrors || !message.getLevel().isError() || message.isIgnorableError()) {
+        if (suppressedMessages.contains(message.getDisplay(), message) || suppressedMessages.contains(message.getMessage(), message) || suppressedMessages.contains(message.getHtml(), message) || suppressedMessages.contains(message.getMessageId(), message) ) {
           passesFilter = false;
         } else if (msgs.contains(message.getLocation()+"|"+message.getMessage())) {
           passesFilter = false;
@@ -678,7 +674,6 @@ public class ValidationPresenter extends TranslatingUtilities implements Compara
       " <tr><td>Global Profiles:</td><td>$globalCheck$</td></tr>\r\n"+
       " <tr><td>HTA Analysis:</td><td>$csAnalysis$</td></tr>\r\n"+
       " <tr><td>R5 Dependencies:</td><td>$r5usage$</td></tr>\r\n"+
-      " <tr><td>Draft Dependencies:</td><td>$draftDependencies$</td></tr>\r\n"+
       " <tr><td>Modifier Extensions:</td><td>$modifiers$</td></tr>\r\n"+
       " <tr><td>Previous Version Comparison:</td><td> $previousVersion$</td></tr>\r\n"+
       " <tr><td>IPA Comparison:</td><td> $ipaComparison$</td></tr>\r\n"+
@@ -805,7 +800,6 @@ public class ValidationPresenter extends TranslatingUtilities implements Compara
     t.add("realm", igrealm == null ? "n/a" : igrealm.toUpperCase());
     t.add("globalCheck", globalCheck);
     t.add("dependencyCheck", dependencies);
-    t.add("draftDependencies", draftDependencies);
     t.add("dependentIgs", dependentIgs.getCountDesc());
     t.add("csAnalysis", csAnalysis);
     t.add("r5usage", genR5());
